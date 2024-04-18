@@ -1,18 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
+using BehaviorTree;
 using UnityEngine;
 
-public class GhostBT : MonoBehaviour
+public class GhostBT : BTree
 {
-    // Start is called before the first frame update
-    void Start()
+    protected override Node SetupTree()
     {
-        
+        throw new System.NotImplementedException();
     }
-
     // Update is called once per frame
     void Update()
     {
-        
+
     }
 }

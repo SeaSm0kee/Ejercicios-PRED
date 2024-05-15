@@ -105,23 +105,22 @@ public class NetPlayer : NetworkBehaviour
     private void Update()
     {
         //Process input   
-        if (IsClient)
+        if (IsClient && clientId.Value == NetworkManager.Singleton.LocalClientId)
         {
-            Prueba();
-            /*if (clientId.Value != NetworkManager.Singleton.LocalClientId) return;
             horMovement = Input.GetAxisRaw("Horizontal");
-            ProcessClientInputsServerRpc(horMovement, Input.GetButtonDown("Jump"));*/
+            ProcessClientInputsServerRpc(horMovement, Input.GetButtonDown("Jump"));
         }
-        else if (IsHost)
+
+        if (IsServer)
         {
-            Debug.LogWarning("hi");
-            Prueba();
+            //Prueba();
             ControlCharacterOrientation();
             //Animation
             animator.SetBool("Running", horMovement != 0);
             animator.SetBool("Grounded", grounded);
             animator.SetBool("OnTheWall", onTheWall);
         }
+
     }
 
     void Prueba()
@@ -162,7 +161,7 @@ public class NetPlayer : NetworkBehaviour
 
     void FixedUpdate()
     {
-        if (IsClient) return;
+        if (!IsHost) return;
         rb.velocity = new Vector2(horMovement * speed, rb.velocity.y);
         if (wantsToJump)
         {
@@ -207,6 +206,7 @@ public class NetPlayer : NetworkBehaviour
         }
     }
 
+
     bool isGrounded()
     {
         var boxCastOrigin = boxCollider.bounds.center;
@@ -231,6 +231,7 @@ public class NetPlayer : NetworkBehaviour
         /*Vector2 rayCastOrigin = new Vector2(boxCollider.bounds.center.x, boxCollider.bounds.min.y);
         Gizmos.DrawLine(rayCastOrigin, rayCastOrigin - new Vector2(0, castDistance));*/
     }
+
 
     bool isNextToTheWall()
     {

@@ -35,11 +35,17 @@ public class NetMenu : MonoBehaviour
         //SceneManager.LoadScene(1);
     }
 
+    public void OnJoinLobby()
+    {
+        NetData.Instance.IsLobby = true;
+        SceneManager.LoadScene(1);
+    }
+
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.Return))
         {
-            NetData.Instance.joinCode = inputField.text.Substring(0, 6);
+            NetData.Instance.JoinCode = inputField.text.Substring(0, 6);
             NetData.Instance.IsServer = false;
             SceneManager.LoadScene(1);
         }

@@ -11,6 +11,9 @@ using Unity.Services.Relay.Models;
 using Unity.Networking.Transport.Relay;
 using Unity.Netcode.Transports.UTP;
 using TMPro;
+using Unity.Services.Lobbies.Models;
+using Unity.Services.Lobbies;
+using System;
 
 public class NetGameManager : NetworkBehaviour, IGameManager
 {
@@ -24,6 +27,8 @@ public class NetGameManager : NetworkBehaviour, IGameManager
     AudioSource audioSource;
     [SerializeField] TextMeshProUGUI codeText;
     private string joinCode;
+    private Lobby hostLobby;
+    [SerializeField] private int numOfPlayers = 4;
 
     void Awake()
     {
@@ -60,7 +65,24 @@ public class NetGameManager : NetworkBehaviour, IGameManager
     // Start is called before the first frame update
     async void Start()
     {
-        if (NetData.Instance.IsServer)
+        if (NetData.Instance.IsLobby)
+        {
+            await InitializeRelay();
+            hostLobby = await GetFirstLobby();
+            if (hostLobby == null)
+            {
+                await CreateRelay();
+                await CreateLobby(joinCode);
+                StartCoroutine(HandleLobbyHeartbeat());
+            }
+            else
+            {
+                await JoinLobby();
+                JoinRelay(hostLobby.Data["JoinCode"].Value);
+            }
+        }
+
+        /*if (NetData.Instance.IsServer)
         {
             await InitializeRelay();
             await CreateRelay();
@@ -70,7 +92,8 @@ public class NetGameManager : NetworkBehaviour, IGameManager
         {
             await InitializeRelay();
             JoinRelay(NetData.Instance.joinCode);
-        }
+        }*/
+        
         Debug.Log("NetGameManager awake. Is server: " + IsServer + " Is Client: " + IsClient);
         Debug.Log("NetGameManager awake. NetData Is server: " + NetData.Instance.IsServer);
     }
@@ -124,7 +147,7 @@ public class NetGameManager : NetworkBehaviour, IGameManager
     {
         try
         {
-            Allocation allocation = await RelayService.Instance.CreateAllocationAsync(4);
+            Allocation allocation = await RelayService.Instance.CreateAllocationAsync(numOfPlayers);
             joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
             Debug.Log($"Join code: {joinCode}");
             codeText.text += joinCode;
@@ -154,6 +177,94 @@ public class NetGameManager : NetworkBehaviour, IGameManager
                 NetworkManager.Singleton.StartClient();
         }
         catch (RelayServiceException e)
+        {
+            Debug.Log(e);
+        }
+    }
+
+    private async Task<Lobby> GetFirstLobby()
+    {
+        try
+        {
+            QueryResponse queryResponse = await Lobbies.Instance.QueryLobbiesAsync();
+            Debug.Log("Lobbies found: " + queryResponse.Results.Count);
+            foreach (Lobby lobby in queryResponse.Results)
+            {
+                Debug.Log(lobby.Name + " " + lobby.MaxPlayers + " Available slots: " + lobby.AvailableSlots); 
+            }
+            if (queryResponse.Results.Count > 0) return queryResponse.Results[0];
+            return null;
+        }
+        catch (LobbyServiceException e)
+        {
+            Debug.Log(e);
+            return null;
+        }
+    }
+
+    private Unity.Services.Lobbies.Models.Player GetPlayer()
+    {
+        var id = AuthenticationService.Instance.PlayerId;
+        var playerName = "Player " + id;
+
+        return new Unity.Services.Lobbies.Models.Player(id, data:
+            new Dictionary<string, PlayerDataObject>
+            {
+                {
+                    "PlayerName", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member,playerName)
+                },
+            });
+    }
+
+    private async Task<Lobby> CreateLobby(string joinCode)
+    {
+        string lobbyName = "NetFrog Lobby" + Guid.NewGuid();
+        try
+        {
+            var lobbyOptions = new Unity.Services.Lobbies.CreateLobbyOptions()
+            {
+                IsPrivate = false,
+                Data = new Dictionary<string, DataObject>
+                {
+                    {
+                        "JoinCode", new DataObject(DataObject.VisibilityOptions.Public,joinCode)
+                    }
+                },
+                Player = GetPlayer(),
+            };
+
+            Lobby lobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, numOfPlayers, lobbyOptions);
+            Debug.Log("A lobby has been created: " + lobby.Name + " " + lobby.MaxPlayers);
+            return lobby;
+        }
+        catch (LobbyServiceException e)
+        {
+            Debug.Log(e);
+            return null;
+        }
+    }
+
+    private IEnumerator HandleLobbyHeartbeat()
+    {
+        while (hostLobby != null)
+        {
+            yield return new WaitForSeconds(15f);
+            LobbyService.Instance.SendHeartbeatPingAsync(hostLobby.Id);
+        }
+    }
+
+    private async Task JoinLobby()
+    {
+        try
+        {
+            JoinLobbyByIdOptions options = new JoinLobbyByIdOptions()
+            {
+                Player = GetPlayer()
+            };
+            await Lobbies.Instance.JoinLobbyByIdAsync(hostLobby.Id, options);
+
+        }
+        catch (LobbyServiceException e)
         {
             Debug.Log(e);
         }

@@ -996,7 +996,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1583564828}
         m_TargetAssemblyTypeName: NetMenu, Assembly-CSharp
-        m_MethodName: OnStartServer
+        m_MethodName: OnJoinLobby
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

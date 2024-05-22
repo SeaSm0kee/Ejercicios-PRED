@@ -82,7 +82,7 @@ public class NetGameManager : NetworkBehaviour, IGameManager
             }
         }
 
-        /*if (NetData.Instance.IsServer)
+        if (NetData.Instance.IsServer)
         {
             await InitializeRelay();
             await CreateRelay();
@@ -91,9 +91,9 @@ public class NetGameManager : NetworkBehaviour, IGameManager
         else
         {
             await InitializeRelay();
-            JoinRelay(NetData.Instance.joinCode);
-        }*/
-        
+            JoinRelay(NetData.Instance.JoinCode);
+        }
+
         Debug.Log("NetGameManager awake. Is server: " + IsServer + " Is Client: " + IsClient);
         Debug.Log("NetGameManager awake. NetData Is server: " + NetData.Instance.IsServer);
     }
@@ -190,7 +190,7 @@ public class NetGameManager : NetworkBehaviour, IGameManager
             Debug.Log("Lobbies found: " + queryResponse.Results.Count);
             foreach (Lobby lobby in queryResponse.Results)
             {
-                Debug.Log(lobby.Name + " " + lobby.MaxPlayers + " Available slots: " + lobby.AvailableSlots); 
+                Debug.Log(lobby.Name + " " + lobby.MaxPlayers + " Available slots: " + lobby.AvailableSlots);
             }
             if (queryResponse.Results.Count > 0) return queryResponse.Results[0];
             return null;
